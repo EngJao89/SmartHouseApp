@@ -32,6 +32,7 @@ A ideia é representar um ecossistema típico de IoT: dispositivos reais ou simu
 - **React** 19.x
 - **TypeScript**
 - **React Navigation** – navegação (Bottom Tabs + Native Stack), com tipagem para `useNavigation` e `useRoute`
+- **react-native-vector-icons** – ícones nas Bottom Tabs (Ionicons: home, flash, person)
 - **Redux Toolkit** – estado global (createSlice), RTK Query para simular chamadas de API (getDevices, updateDevice)
 - **Node.js** ≥ 22.11 (ver `engines` no `package.json`)
 - **Metro** – bundler JavaScript
@@ -96,6 +97,19 @@ O app deve abrir no emulador/simulador ou dispositivo conectado.
 - **Android**: <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) ou <kbd>Cmd</kbd> + <kbd>M</kbd> (macOS) → "Reload", ou pressione <kbd>R</kbd> duas vezes.
 - **iOS**: <kbd>R</kbd> no simulador.
 
+### 5. Ícones (react-native-vector-icons)
+
+Os ícones das abas usam fontes nativas. Se os ícones não aparecerem após instalar a lib:
+
+- **Android**: o `android/app/build.gradle` já inclui `apply from: .../fonts.gradle`. Faça um **rebuild completo** (não basta reload):
+  ```bash
+  cd android && ./gradlew clean && cd .. && npm run android
+  ```
+- **iOS**: o `Info.plist` deve ter a chave **UIAppFonts** com `Ionicons.ttf`. Depois rode **pod install** e reconstrua:
+  ```bash
+  cd ios && pod install && cd .. && npm run ios
+  ```
+
 ---
 
 ## Estrutura do projeto
@@ -107,7 +121,7 @@ SmartHouseApp/
 ├── src/
 │   ├── navigation/         # Configuração de rotas
 │   │   ├── types.ts        # Tipos das rotas (ParamList) e declare global (RootParamList)
-│   │   ├── RootNavigator.tsx   # Bottom Tabs (Dispositivos, Automações, Perfil)
+│   │   ├── RootNavigator.tsx   # Bottom Tabs com ícones (Ionicons) e tema
 │   │   └── DispositivosStack.tsx   # Stack dentro da tab Dispositivos (lista → detalhe)
 │   ├── store/              # Redux Toolkit
 │   │   ├── deviceTypes.ts  # Interface Device (id, name, on, brightness?)
@@ -136,7 +150,7 @@ A navegação usa **React Navigation** com tipagem em TypeScript.
 
 ### Estrutura de rotas
 
-- **Bottom Tabs** (raiz): três abas — **Dispositivos**, **Automações**, **Perfil**.
+- **Bottom Tabs** (raiz): três abas — **Dispositivos**, **Automações**, **Perfil** — com ícones do **Ionicons** (react-native-vector-icons): home/home-outline, flash/flash-outline, person/person-outline (preenchido quando ativo).
 - **Stack** na aba **Dispositivos**:
   - **DispositivosList** – lista de dispositivos (estado em Redux); ao tocar em um item, navega para o detalhe.
   - **DeviceDetail** – tela de detalhe que recebe `deviceId` e `deviceName` pela rota; controles de ligar/desligar e brilho (Redux + RTK Query).
@@ -210,6 +224,7 @@ O **App** está envolvido em `<Provider store={store}>` (em `App.tsx`).
 - [React Navigation – TypeScript](https://reactnavigation.org/docs/typescript)
 - [Redux Toolkit – Documentação](https://redux-toolkit.js.org/introduction/getting-started)
 - [RTK Query – Overview](https://redux-toolkit.js.org/rtk-query/overview)
+- [react-native-vector-icons](https://github.com/oblador/react-native-vector-icons) – ícones (Ionicons, MaterialIcons, etc.)
 
 ---
 
