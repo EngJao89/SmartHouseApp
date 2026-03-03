@@ -20,6 +20,7 @@ A ideia é representar um ecossistema típico de IoT: dispositivos reais ou simu
 |------|-----------|
 | **React Native CLI** | Projeto nativo (Android/iOS) sem Expo; configuração de Metro, Babel, TypeScript e builds nativos. |
 | **Navegação** | React Navigation com Bottom Tabs e Stack aninhado; tipagem de rotas e params com `useNavigation` e `useRoute`. |
+| **Estado** | Redux Toolkit com slice de dispositivos (`toggleDevice`, `updateBrightness`) e RTK Query para simular API. |
 | **IoT** | Integração com serviços de IoT (APIs REST, MQTT, WebSockets) para controle e monitoramento de dispositivos. |
 | **UX mobile** | Interface pensada para controle rápido, feedback visual e estados de conexão. |
 
@@ -31,6 +32,7 @@ A ideia é representar um ecossistema típico de IoT: dispositivos reais ou simu
 - **React** 19.x
 - **TypeScript**
 - **React Navigation** – navegação (Bottom Tabs + Native Stack), com tipagem para `useNavigation` e `useRoute`
+- **Redux Toolkit** – estado global (createSlice), RTK Query para simular chamadas de API (getDevices, updateDevice)
 - **Node.js** ≥ 22.11 (ver `engines` no `package.json`)
 - **Metro** – bundler JavaScript
 - **ESLint** + **Prettier** – qualidade e formatação de código
@@ -107,9 +109,14 @@ SmartHouseApp/
 │   │   ├── types.ts        # Tipos das rotas (ParamList) e declare global (RootParamList)
 │   │   ├── RootNavigator.tsx   # Bottom Tabs (Dispositivos, Automações, Perfil)
 │   │   └── DispositivosStack.tsx   # Stack dentro da tab Dispositivos (lista → detalhe)
+│   ├── store/              # Redux Toolkit
+│   │   ├── deviceTypes.ts  # Interface Device (id, name, on, brightness?)
+│   │   ├── devicesSlice.ts # Slice: toggleDevice, updateBrightness, setDevices
+│   │   ├── devicesApi.ts    # RTK Query: getDevices (query), updateDevice (mutation)
+│   │   └── index.ts        # configureStore, Provider usa em App.tsx
 │   └── screens/
-│       ├── DispositivosListScreen.tsx   # Lista de dispositivos (useNavigation tipado)
-│       ├── DeviceDetailScreen.tsx       # Detalhe do dispositivo (useRoute tipado)
+│       ├── DispositivosListScreen.tsx   # Lista (useGetDevicesQuery + useSelector)
+│       ├── DeviceDetailScreen.tsx       # Detalhe + Switch/Slider (dispatch + useUpdateDeviceMutation)
 │       ├── AutomacoesScreen.tsx
 │       └── PerfilScreen.tsx
 ├── android/                # Projeto nativo Android
@@ -131,14 +138,41 @@ A navegação usa **React Navigation** com tipagem em TypeScript.
 
 - **Bottom Tabs** (raiz): três abas — **Dispositivos**, **Automações**, **Perfil**.
 - **Stack** na aba **Dispositivos**:
-  - **DispositivosList** – lista de dispositivos (mock); ao tocar em um item, navega para o detalhe.
-  - **DeviceDetail** – tela de detalhe que recebe `deviceId` e `deviceName` pelos parâmetros da rota.
+  - **DispositivosList** – lista de dispositivos (estado em Redux); ao tocar em um item, navega para o detalhe.
+  - **DeviceDetail** – tela de detalhe que recebe `deviceId` e `deviceName` pela rota; controles de ligar/desligar e brilho (Redux + RTK Query).
 
 ### Tipagem
 
 - **`src/navigation/types.ts`** define os *param lists* (`DispositivosStackParamList`, `RootTabParamList`) e o `declare global` para `ReactNavigation.RootParamList`, permitindo que `useNavigation()` e `useRoute()` sejam inferidos corretamente em todo o app.
 - **`useNavigation`**: nas telas do stack (ex.: `DispositivosListScreen`), o hook é tipado com `NativeStackNavigationProp<DispositivosStackParamList, 'DispositivosList'>` para navegação type-safe (ex.: `navigation.navigate('DeviceDetail', { deviceId, deviceName })`).
 - **`useRoute`**: na tela de detalhe, o hook é tipado com `RouteProp<DispositivosStackParamList, 'DeviceDetail'>` para acessar `route.params.deviceId` e `route.params.deviceName` com autocomplete e checagem de tipos.
+
+---
+
+## Gerenciamento de estado (Redux Toolkit)
+
+O estado global usa **Redux Toolkit** com uma slice para dispositivos e **RTK Query** para simular chamadas de API.
+
+### Slice `devices` (`src/store/devicesSlice.ts`)
+
+- **Estado**: `items: Device[]`, onde cada `Device` tem `id`, `name`, `on` (boolean) e opcionalmente `brightness` (0–100).
+- **Ações**:
+  - **`toggleDevice(id)`** – alterna ligado/desligado.
+  - **`updateBrightness({ id, brightness })`** – atualiza o brilho (apenas dispositivos que suportam).
+  - **`setDevices(devices)`** – define a lista (usado ao receber dados da query).
+
+### RTK Query (`src/store/devicesApi.ts`)
+
+- **`getDevices`** – query que simula uma API (delay ~600 ms) e retorna a lista de dispositivos; a lista é sincronizada para a slice via `setDevices`.
+- **`updateDevice`** – mutation que simula PATCH (delay ~400 ms) com `{ id, on?, brightness? }`; usada ao ligar/desligar e ao soltar o slider de brilho.
+- Tags `['Devices']` para invalidação e refetch automático após mutations.
+
+### Uso nas telas
+
+- **DispositivosListScreen**: `useGetDevicesQuery()` para carregar da “API”; quando os dados chegam, dispara `setDevices`. A lista é lida com `useSelector(state => state.devices.items)`. Exibe estado (Ligado/Desligado) e brilho quando existir.
+- **DeviceDetailScreen**: `useSelector` para o dispositivo por `deviceId`; **Switch** dispara `toggleDevice` + `updateDevice({ id, on })`; **Slider** de brilho (apenas se o dispositivo tiver `brightness`) atualiza a slice em tempo real e chama a mutation em `onSlidingComplete`. Indicador “Sincronizando...” durante a mutation.
+
+O **App** está envolvido em `<Provider store={store}>` (em `App.tsx`).
 
 ---
 
@@ -159,8 +193,9 @@ A navegação usa **React Navigation** com tipagem em TypeScript.
 
 - [x] Navegação com React Navigation (Bottom Tabs + Stack em Dispositivos)
 - [x] Telas de listagem e detalhe de dispositivos (com `useNavigation` e `useRoute` tipados)
-- [ ] Integração com API REST ou MQTT/WebSocket para IoT
-- [ ] Controle de dispositivos (ligar/desligar, ajustar parâmetros)
+- [x] Gerenciamento de estado com Redux Toolkit (slice devices + RTK Query)
+- [x] Controle de dispositivos (ligar/desligar, ajustar brilho)
+- [ ] Integração com API REST ou MQTT/WebSocket para IoT (substituir mock)
 - [ ] Indicadores de conexão e estado dos dispositivos
 - [ ] Persistência local (ex.: AsyncStorage) para preferências
 
@@ -173,6 +208,8 @@ A navegação usa **React Navigation** com tipagem em TypeScript.
 - [Troubleshooting React Native](https://reactnative.dev/docs/troubleshooting)
 - [React Navigation – Documentação](https://reactnavigation.org/docs/getting-started)
 - [React Navigation – TypeScript](https://reactnavigation.org/docs/typescript)
+- [Redux Toolkit – Documentação](https://redux-toolkit.js.org/introduction/getting-started)
+- [RTK Query – Overview](https://redux-toolkit.js.org/rtk-query/overview)
 
 ---
 
