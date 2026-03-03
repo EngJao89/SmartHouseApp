@@ -1,5 +1,6 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { DispositivosStackParamList } from './types';
+import { AddDeviceScreen } from '../screens/AddDeviceScreen';
 import { DeviceDetailScreen } from '../screens/DeviceDetailScreen';
 import { DispositivosListScreen } from '../screens/DispositivosListScreen';
 import { useTheme } from '../theme/ThemeContext';
@@ -31,6 +32,11 @@ export function DispositivosStack() {
         options={({ route }) => ({
           title: route.params.deviceName ?? 'Detalhe',
         })}
+      />
+      <Stack.Screen
+        name="AddDevice"
+        component={AddDeviceScreen}
+        options={{ title: 'Adicionar dispositivo' }}
       />
     </Stack.Navigator>
   );

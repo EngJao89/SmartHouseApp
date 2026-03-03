@@ -1,11 +1,12 @@
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useLayoutEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   ActivityIndicator,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import type { DispositivosStackParamList } from '../navigation/types';
@@ -19,6 +20,20 @@ type DispositivosListNavigationProp = NativeStackNavigationProp<
   DispositivosStackParamList,
   'DispositivosList'
 >;
+
+function AddDeviceHeaderButton({
+  onPress,
+  tintColor,
+}: {
+  onPress: () => void;
+  tintColor: string;
+}) {
+  return (
+    <TouchableOpacity onPress={onPress} style={{ marginRight: 12 }}>
+      <Text style={{ color: tintColor, fontWeight: '600' }}>Adicionar</Text>
+    </TouchableOpacity>
+  );
+}
 
 export function DispositivosListScreen() {
   const navigation = useNavigation<DispositivosListNavigationProp>();
@@ -39,6 +54,21 @@ export function DispositivosListScreen() {
     },
     [navigation],
   );
+
+  const goToAddDevice = useCallback(() => {
+    navigation.navigate('AddDevice');
+  }, [navigation]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <AddDeviceHeaderButton
+          onPress={goToAddDevice}
+          tintColor={theme.colors.primary}
+        />
+      ),
+    });
+  }, [navigation, theme.colors.primary, goToAddDevice]);
 
   if (devices.length === 0 && !isSuccess) {
     return (

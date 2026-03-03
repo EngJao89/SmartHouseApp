@@ -9,6 +9,7 @@ export type DispositivosStackParamList = {
     deviceId: string;
     deviceName?: string;
   };
+  AddDevice: undefined;
 };
 
 /**
