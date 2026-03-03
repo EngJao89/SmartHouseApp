@@ -8,8 +8,9 @@ import { Provider } from 'react-redux';
 import { StatusBar } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootNavigator } from './src/navigation/RootNavigator';
-import { store } from './src/store';
+import { store, persistor } from './src/store';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
+import { PersistGate } from 'redux-persist/integration/react';
 
 function AppContent() {
   const { isDark, theme } = useTheme();
@@ -44,11 +45,13 @@ function AppContent() {
 function App() {
   return (
     <Provider store={store}>
-      <ThemeProvider>
-        <SafeAreaProvider>
-          <AppContent />
-        </SafeAreaProvider>
-      </ThemeProvider>
+      <PersistGate loading={null} persistor={persistor}>
+        <ThemeProvider>
+          <SafeAreaProvider>
+            <AppContent />
+          </SafeAreaProvider>
+        </ThemeProvider>
+      </PersistGate>
     </Provider>
   );
 }
