@@ -11,6 +11,7 @@
     "commit": "cz"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^3.0.1",
     "@react-native-community/slider": "^5.1.2",
     "@react-native/new-app-screen": "0.84.1",
     "@react-navigation/bottom-tabs": "^7.15.4",
@@ -22,7 +23,8 @@
     "react-native-safe-area-context": "^5.5.2",
     "react-native-screens": "^4.24.0",
     "react-native-vector-icons": "^10.3.0",
-    "react-redux": "^9.2.0"
+    "react-redux": "^9.2.0",
+    "redux-persist": "^6.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

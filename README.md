@@ -21,6 +21,7 @@ A ideia é representar um ecossistema típico de IoT: dispositivos reais ou simu
 | **React Native CLI** | Projeto nativo (Android/iOS) sem Expo; configuração de Metro, Babel, TypeScript e builds nativos. |
 | **Navegação** | React Navigation com Bottom Tabs e Stack aninhado; tipagem de rotas e params com `useNavigation` e `useRoute`. |
 | **Estado** | Redux Toolkit com slice de dispositivos (`toggleDevice`, `updateBrightness`) e RTK Query para simular API. |
+| **Offline First** | Cache em AsyncStorage; Redux Persist persiste estado (devices + cache RTK Query) e reidrata na abertura; sincronização em background. |
 | **IoT** | Integração com serviços de IoT (APIs REST, MQTT, WebSockets) para controle e monitoramento de dispositivos. |
 | **UX mobile** | Interface pensada para controle rápido, feedback visual e estados de conexão. |
 
@@ -34,6 +35,7 @@ A ideia é representar um ecossistema típico de IoT: dispositivos reais ou simu
 - **React Navigation** – navegação (Bottom Tabs + Native Stack), com tipagem para `useNavigation` e `useRoute`
 - **react-native-vector-icons** – ícones nas Bottom Tabs (Ionicons: home, flash, person)
 - **Redux Toolkit** – estado global (createSlice), RTK Query para simular chamadas de API (getDevices, updateDevice)
+- **redux-persist** + **@react-native-async-storage/async-storage** – Offline First: cache do estado em AsyncStorage, reidratação na abertura, persistência em background
 - **Node.js** ≥ 22.11 (ver `engines` no `package.json`)
 - **Metro** – bundler JavaScript
 - **ESLint** + **Prettier** – qualidade e formatação de código
@@ -127,7 +129,7 @@ SmartHouseApp/
 │   │   ├── deviceTypes.ts  # Interface Device (id, name, on, brightness?)
 │   │   ├── devicesSlice.ts # Slice: toggleDevice, updateBrightness, setDevices
 │   │   ├── devicesApi.ts    # RTK Query: getDevices (query), updateDevice (mutation)
-│   │   └── index.ts        # configureStore, Provider usa em App.tsx
+│   │   └── index.ts        # configureStore, persistReducer (AsyncStorage), persistor; App usa PersistGate
 │   └── screens/
 │       ├── DispositivosListScreen.tsx   # Lista (useGetDevicesQuery + useSelector)
 │       ├── DeviceDetailScreen.tsx       # Detalhe + Switch/Slider (dispatch + useUpdateDeviceMutation)
@@ -186,7 +188,33 @@ O estado global usa **Redux Toolkit** com uma slice para dispositivos e **RTK Qu
 - **DispositivosListScreen**: `useGetDevicesQuery()` para carregar da “API”; quando os dados chegam, dispara `setDevices`. A lista é lida com `useSelector(state => state.devices.items)`. Exibe estado (Ligado/Desligado) e brilho quando existir.
 - **DeviceDetailScreen**: `useSelector` para o dispositivo por `deviceId`; **Switch** dispara `toggleDevice` + `updateDevice({ id, on })`; **Slider** de brilho (apenas se o dispositivo tiver `brightness`) atualiza a slice em tempo real e chama a mutation em `onSlidingComplete`. Indicador “Sincronizando...” durante a mutation.
 
-O **App** está envolvido em `<Provider store={store}>` (em `App.tsx`).
+O **App** está envolvido em `<Provider store={store}>` e `<PersistGate persistor={persistor}>` (em `App.tsx`).
+
+---
+
+## Offline First (Redux Persist + AsyncStorage)
+
+A estratégia é **cache primeiro**: os dados ficam disponíveis offline e são sincronizados em background quando há conexão.
+
+### Como funciona
+
+- **AsyncStorage** é a camada de armazenamento local (chave `smartHouse`).
+- **redux-persist** persiste as fatias `devices` e `devicesApi` (cache das queries). Toda alteração de estado nesses reducers é gravada em background no AsyncStorage.
+- Na **abertura do app**, o `PersistGate` segura a renderização até a **reidratação** terminar: o estado salvo é restaurado e a UI já mostra a última lista e o último estado dos dispositivos, mesmo sem rede.
+- **Em background**: quando o usuário usa o app com rede, RTK Query refaz as queries (ex.: `getDevices`), o estado é atualizado e o redux-persist persiste de novo. Não é necessário “sincronizar manualmente”; a persistência é contínua.
+
+### Configuração (`src/store/index.ts`)
+
+- `persistConfig`: `key: 'smartHouse'`, `storage: AsyncStorage`, `whitelist: ['devices', 'devicesApi']`.
+- `persistedReducer = persistReducer(persistConfig, rootReducer)`.
+- `persistor = persistStore(store)`; o `App` usa `<PersistGate loading={null} persistor={persistor}>`.
+- As actions do redux-persist (`persist/PERSIST`, `persist/REHYDRATE`, etc.) estão em `ignoredActions` do `serializableCheck` do middleware para evitar avisos.
+
+### Fluxo resumido
+
+1. **Primeira abertura / com rede**: busca da API → estado atualizado → gravado no AsyncStorage.
+2. **Próximas aberturas**: reidratação do AsyncStorage → tela mostra dados em cache de imediato; se houver rede, RTK Query pode refetch e o cache é atualizado em background.
+3. **Offline**: apenas o estado persistido é exibido; mutations (toggle, brilho) atualizam o estado local e serão persistidas; quando voltar online, um refetch traria dados do servidor (no projeto atual a “API” é simulada).
 
 ---
 
@@ -209,9 +237,9 @@ O **App** está envolvido em `<Provider store={store}>` (em `App.tsx`).
 - [x] Telas de listagem e detalhe de dispositivos (com `useNavigation` e `useRoute` tipados)
 - [x] Gerenciamento de estado com Redux Toolkit (slice devices + RTK Query)
 - [x] Controle de dispositivos (ligar/desligar, ajustar brilho)
+- [x] Offline First com AsyncStorage e Redux Persist (cache + reidratação + persistência em background)
 - [ ] Integração com API REST ou MQTT/WebSocket para IoT (substituir mock)
 - [ ] Indicadores de conexão e estado dos dispositivos
-- [ ] Persistência local (ex.: AsyncStorage) para preferências
 
 ---
 
@@ -225,6 +253,8 @@ O **App** está envolvido em `<Provider store={store}>` (em `App.tsx`).
 - [Redux Toolkit – Documentação](https://redux-toolkit.js.org/introduction/getting-started)
 - [RTK Query – Overview](https://redux-toolkit.js.org/rtk-query/overview)
 - [react-native-vector-icons](https://github.com/oblador/react-native-vector-icons) – ícones (Ionicons, MaterialIcons, etc.)
+- [redux-persist](https://github.com/rt2zz/redux-persist) – persistência do Redux (ex.: com AsyncStorage)
+- [React Native AsyncStorage](https://react-native-async-storage.github.io/async-storage/) – armazenamento local assíncrono
 
 ---
 
