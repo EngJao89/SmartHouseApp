@@ -8,6 +8,7 @@ import type { DispositivosStackParamList } from '../navigation/types';
 import { toggleDevice, updateBrightness } from '../store/devicesSlice';
 import { useUpdateDeviceMutation } from '../store/devicesApi';
 import type { RootState } from '../store';
+import { useTheme } from '../theme/ThemeContext';
 
 type DeviceDetailRouteProp = RouteProp<
   DispositivosStackParamList,
@@ -18,6 +19,7 @@ export function DeviceDetailScreen() {
   const route = useRoute<DeviceDetailRouteProp>();
   const { deviceId, deviceName } = route.params;
   const dispatch = useDispatch();
+  const { theme } = useTheme();
   const device = useSelector((state: RootState) =>
     state.devices.items.find((d) => d.id === deviceId),
   );
@@ -49,8 +51,18 @@ export function DeviceDetailScreen() {
 
   if (!device) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.error}>Dispositivo não encontrado.</Text>
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: theme.colors.background,
+            padding: theme.spacing.md,
+          },
+        ]}
+      >
+        <Text style={[styles.error, { color: theme.colors.error }]}>
+          Dispositivo não encontrado.
+        </Text>
       </View>
     );
   }
@@ -58,24 +70,82 @@ export function DeviceDetailScreen() {
   const hasBrightness = typeof device.brightness === 'number';
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{deviceName ?? device.name}</Text>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.colors.background,
+          padding: theme.spacing.md,
+        },
+      ]}
+    >
+      <Text
+        style={[
+          styles.title,
+          {
+            color: theme.colors.text,
+            fontSize: theme.typography.title.fontSize,
+            fontWeight: theme.typography.title.fontWeight,
+            marginBottom: theme.spacing.lg,
+          },
+        ]}
+      >
+        {deviceName ?? device.name}
+      </Text>
 
-      <View style={styles.row}>
-        <Text style={styles.label}>Estado</Text>
+      <View style={[styles.row, { marginBottom: theme.spacing.xs }]}>
+        <Text
+          style={[
+            styles.label,
+            {
+              color: theme.colors.text,
+              fontSize: theme.typography.label.fontSize,
+              fontWeight: theme.typography.label.fontWeight,
+            },
+          ]}
+        >
+          Estado
+        </Text>
         <Switch
           value={device.on}
           onValueChange={handleToggle}
           disabled={isLoading}
+          trackColor={{
+            false: theme.colors.border,
+            true: theme.colors.primary,
+          }}
+          thumbColor={theme.colors.primaryContrast}
         />
       </View>
-      <Text style={styles.hint}>
+      <Text
+        style={[
+          styles.hint,
+          {
+            color: theme.colors.textSecondary,
+            fontSize: theme.typography.caption.fontSize,
+          },
+        ]}
+      >
         {device.on ? 'Ligado' : 'Desligado'}
       </Text>
 
       {hasBrightness && (
         <>
-          <Text style={[styles.label, styles.labelTop]}>Brilho</Text>
+          <Text
+            style={[
+              styles.label,
+              styles.labelTop,
+              {
+                color: theme.colors.text,
+                fontSize: theme.typography.label.fontSize,
+                fontWeight: theme.typography.label.fontWeight,
+                marginTop: theme.spacing.md,
+                marginBottom: theme.spacing.sm,
+              },
+            ]}
+          >
+            Brilho
+          </Text>
           <View style={styles.sliderRow}>
             <Slider
               style={styles.slider}
@@ -84,11 +154,20 @@ export function DeviceDetailScreen() {
               value={device.brightness ?? 0}
               onValueChange={handleBrightnessChange}
               onSlidingComplete={handleBrightnessCommit}
-              minimumTrackTintColor="#2196f3"
-              maximumTrackTintColor="#ccc"
+              minimumTrackTintColor={theme.colors.primary}
+              maximumTrackTintColor={theme.colors.border}
               disabled={!device.on || isLoading}
             />
-            <Text style={styles.brightnessValue}>
+            <Text
+              style={[
+                styles.brightnessValue,
+                {
+                  color: theme.colors.text,
+                  fontSize: theme.typography.body.fontSize,
+                  fontWeight: '600',
+                },
+              ]}
+            >
               {device.brightness ?? 0}%
             </Text>
           </View>
@@ -96,7 +175,18 @@ export function DeviceDetailScreen() {
       )}
 
       {isLoading && (
-        <Text style={styles.syncing}>Sincronizando...</Text>
+        <Text
+          style={[
+            styles.syncing,
+            {
+              color: theme.colors.textSecondary,
+              marginTop: theme.spacing.md,
+              fontSize: theme.typography.caption.fontSize,
+            },
+          ]}
+        >
+          Sincronizando...
+        </Text>
       )}
     </View>
   );
@@ -105,34 +195,19 @@ export function DeviceDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
   },
   error: {
     fontSize: 16,
-    color: '#c62828',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: '600',
-    marginBottom: 24,
-  },
+  title: {},
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  label: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  labelTop: {
-    marginTop: 16,
-    marginBottom: 8,
-  },
+  label: {},
+  labelTop: {},
   hint: {
-    fontSize: 14,
-    color: '#666',
     marginTop: 4,
   },
   sliderRow: {
@@ -145,14 +220,8 @@ const styles = StyleSheet.create({
     height: 40,
   },
   brightnessValue: {
-    fontSize: 16,
-    fontWeight: '600',
     minWidth: 40,
     textAlign: 'right',
   },
-  syncing: {
-    marginTop: 16,
-    fontSize: 12,
-    color: '#666',
-  },
+  syncing: {},
 });

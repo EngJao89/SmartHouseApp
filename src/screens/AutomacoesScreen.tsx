@@ -1,10 +1,38 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { useTheme } from '../theme/ThemeContext';
+import { Header } from '../components/ui';
 
 export function AutomacoesScreen() {
+  const { theme } = useTheme();
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Automações</Text>
-      <Text style={styles.placeholder}>Em breve: cenários e rotinas.</Text>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: theme.colors.background },
+      ]}
+    >
+      <Header title="Automações" />
+      <View
+        style={[
+          styles.content,
+          {
+            padding: theme.spacing.md,
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.placeholder,
+            {
+              color: theme.colors.textSecondary,
+              fontSize: theme.typography.body.fontSize,
+            },
+          ]}
+        >
+          Em breve: cenários e rotinas.
+        </Text>
+      </View>
     </View>
   );
 }
@@ -12,18 +40,11 @@ export function AutomacoesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
+  },
+  content: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  placeholder: {
-    fontSize: 14,
-    color: '#666',
-  },
+  placeholder: {},
 });
